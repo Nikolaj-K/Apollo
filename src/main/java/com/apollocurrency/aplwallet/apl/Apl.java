@@ -572,7 +572,7 @@ public final class Apl {
     public static String getOldDbDir(String dbDir, int chainId) {
         return dirProvider
                 .getDbDir(dbDir, chainId)
-                .replace(String.valueOf(chainId) + File.pathSeparator, "");
+                .replace(String.valueOf(chainId) + File.separator, "");
     }
 
     public static String getOldDbDir(String dbDir) {
