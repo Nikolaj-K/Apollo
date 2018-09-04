@@ -311,7 +311,7 @@ public final class JSONData {
         //using one connection for 4 queries
         Connection con = null;
         try {
-            con = Db.db.getConnection();
+            con = Db.getDb().getConnection();
             long totalSupply = Account.getTotalSupply(con);
             long totalAccounts = Account.getTotalNumberOfAccounts(con);
             long totalAmountOnTopAccounts = Account.getTotalAmountOnTopAccounts(con, numberOfAccounts);
@@ -572,6 +572,7 @@ public final class JSONData {
         }
         json.put("services", servicesArray);
         json.put("blockchainState", peer.getBlockchainState());
+        json.put("chainId", peer.getChainId());
         return json;
     }
 

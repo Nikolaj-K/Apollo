@@ -83,7 +83,7 @@ final class BlockDb {
             }
         }
         // Search the database
-        try (Connection con = Db.db.getConnection();
+        try (Connection con = Db.getDb().getConnection();
              PreparedStatement pstmt = con.prepareStatement("SELECT * FROM block WHERE id = ?")) {
             pstmt.setLong(1, blockId);
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -111,7 +111,7 @@ final class BlockDb {
             }
         }
         // Search the database
-        try (Connection con = Db.db.getConnection();
+        try (Connection con = Db.getDb().getConnection();
              PreparedStatement pstmt = con.prepareStatement("SELECT height FROM block WHERE id = ? AND (next_block_id <> 0 OR next_block_id IS NULL)")) {
             pstmt.setLong(1, blockId);
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -131,7 +131,7 @@ final class BlockDb {
             }
         }
         // Search the database
-        try (Connection con = Db.db.getConnection();
+        try (Connection con = Db.getDb().getConnection();
              PreparedStatement pstmt = con.prepareStatement("SELECT id FROM block WHERE height = ?")) {
             pstmt.setInt(1, height);
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -154,7 +154,7 @@ final class BlockDb {
             }
         }
         // Search the database
-        try (Connection con = Db.db.getConnection();
+        try (Connection con = Db.getDb().getConnection();
              PreparedStatement pstmt = con.prepareStatement("SELECT * FROM block WHERE height = ?")) {
             pstmt.setInt(1, height);
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -172,7 +172,7 @@ final class BlockDb {
     }
 
     static BlockImpl findLastBlock() {
-        try (Connection con = Db.db.getConnection();
+        try (Connection con = Db.getDb().getConnection();
              PreparedStatement pstmt = con.prepareStatement("SELECT * FROM block WHERE next_block_id <> 0 OR next_block_id IS NULL ORDER BY timestamp DESC LIMIT 1")) {
             BlockImpl block = null;
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -187,7 +187,7 @@ final class BlockDb {
     }
 
     static BlockImpl findLastBlock(int timestamp) {
-        try (Connection con = Db.db.getConnection();
+        try (Connection con = Db.getDb().getConnection();
              PreparedStatement pstmt = con.prepareStatement("SELECT * FROM block WHERE timestamp <= ? ORDER BY timestamp DESC LIMIT 1")) {
             pstmt.setInt(1, timestamp);
             BlockImpl block = null;
@@ -204,7 +204,7 @@ final class BlockDb {
 
     static Set<Long> getBlockGenerators(int startHeight) {
         Set<Long> generators = new HashSet<>();
-        try (Connection con = Db.db.getConnection();
+        try (Connection con = Db.getDb().getConnection();
                 PreparedStatement pstmt = con.prepareStatement(
                         "SELECT generator_id, COUNT(generator_id) AS count FROM block WHERE height >= ? GROUP BY generator_id")) {
             pstmt.setInt(1, startHeight);
@@ -301,7 +301,7 @@ final class BlockDb {
 
     //set next_block_id to null instead of 0 to indicate successful block push
     static void commit(Block block) {
-        try (Connection con = Db.db.getConnection();
+        try (Connection con = Db.getDb().getConnection();
              PreparedStatement pstmt = con.prepareStatement("UPDATE block SET next_block_id = NULL WHERE id = ?")) {
             pstmt.setLong(1, block.getId());
             pstmt.executeUpdate();
@@ -312,7 +312,7 @@ final class BlockDb {
 
     static void deleteBlocksFromHeight(int height) {
         long blockId;
-        try (Connection con = Db.db.getConnection();
+        try (Connection con = Db.getDb().getConnection();
              PreparedStatement pstmt = con.prepareStatement("SELECT id FROM block WHERE height = ?")) {
             pstmt.setInt(1, height);
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -330,33 +330,33 @@ final class BlockDb {
 
     // relying on cascade triggers in the database to delete the transactions and public keys for all deleted blocks
     static BlockImpl deleteBlocksFrom(long blockId) {
-        if (!Db.db.isInTransaction()) {
+        if (!Db.getDb().isInTransaction()) {
             BlockImpl lastBlock;
             try {
-                Db.db.beginTransaction();
+                Db.getDb().beginTransaction();
                 // TODO: Recursion, check if safe...
                 lastBlock = deleteBlocksFrom(blockId);
-                Db.db.commitTransaction();
+                Db.getDb().commitTransaction();
             } catch (Exception e) {
-                Db.db.rollbackTransaction();
+                Db.getDb().rollbackTransaction();
                 throw e;
             } finally {
-                Db.db.endTransaction();
+                Db.getDb().endTransaction();
             }
             return lastBlock;
         }
-        try (Connection con = Db.db.getConnection();
+        try (Connection con = Db.getDb().getConnection();
              PreparedStatement pstmtSelect = con.prepareStatement("SELECT db_id FROM block WHERE timestamp >= "
                      + "IFNULL ((SELECT timestamp FROM block WHERE id = ?), " + Integer.MAX_VALUE + ") ORDER BY timestamp DESC");
              PreparedStatement pstmtDelete = con.prepareStatement("DELETE FROM block WHERE db_id = ?")) {
             try {
                 pstmtSelect.setLong(1, blockId);
                 try (ResultSet rs = pstmtSelect.executeQuery()) {
-                    Db.db.commitTransaction();
+                    Db.getDb().commitTransaction();
                     while (rs.next()) {
         	            pstmtDelete.setLong(1, rs.getLong("db_id"));
             	        pstmtDelete.executeUpdate();
-                        Db.db.commitTransaction();
+                        Db.getDb().commitTransaction();
                     }
 	            }
                 BlockImpl lastBlock = findLastBlock();
@@ -365,10 +365,10 @@ final class BlockDb {
                     pstmt.setLong(1, lastBlock.getId());
                     pstmt.executeUpdate();
                 }
-                Db.db.commitTransaction();
+                Db.getDb().commitTransaction();
                 return lastBlock;
             } catch (SQLException e) {
-                Db.db.rollbackTransaction();
+                Db.getDb().rollbackTransaction();
                 throw e;
             }
         } catch (SQLException e) {
@@ -379,21 +379,21 @@ final class BlockDb {
     }
 
     static void deleteAll() {
-        if (!Db.db.isInTransaction()) {
+        if (!Db.getDb().isInTransaction()) {
             try {
-                Db.db.beginTransaction();
+                Db.getDb().beginTransaction();
                 deleteAll();
-                Db.db.commitTransaction();
+                Db.getDb().commitTransaction();
             } catch (Exception e) {
-                Db.db.rollbackTransaction();
+                Db.getDb().rollbackTransaction();
                 throw e;
             } finally {
-                Db.db.endTransaction();
+                Db.getDb().endTransaction();
             }
             return;
         }
         Logger.logMessage("Deleting blockchain...");
-        try (Connection con = Db.db.getConnection();
+        try (Connection con = Db.getDb().getConnection();
              Statement stmt = con.createStatement()) {
             try {
                 stmt.executeUpdate("SET REFERENTIAL_INTEGRITY FALSE");
@@ -405,9 +405,9 @@ final class BlockDb {
                     } catch (SQLException ignore) {}
                 });
                 stmt.executeUpdate("SET REFERENTIAL_INTEGRITY TRUE");
-                Db.db.commitTransaction();
+                Db.getDb().commitTransaction();
             } catch (SQLException e) {
-                Db.db.rollbackTransaction();
+                Db.getDb().rollbackTransaction();
                 throw e;
             }
         } catch (SQLException e) {

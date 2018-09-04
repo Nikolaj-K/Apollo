@@ -17,7 +17,7 @@ public class UpdaterDb {
             "(\'update_status\' table is inconsistent. (more than one update transaction " +
             "present)");
     public static Transaction loadLastUpdateTransaction() {
-        try (Connection connection = Db.db.getConnection())
+        try (Connection connection = Db.getDb().getConnection())
         {
             return loadLastUpdateTransaction(connection);
         }
@@ -56,29 +56,29 @@ public class UpdaterDb {
     //required operations in one transaction
     public static boolean clearAndSaveUpdateTransaction(Long transactionId) {
         boolean success = false;
-        boolean isInTransaction = Db.db.isInTransaction();
+        boolean isInTransaction = Db.getDb().isInTransaction();
         try {
             Connection connection;
-            if (!isInTransaction) connection = Db.db.beginTransaction();
-            else connection = Db.db.getConnection();
+            if (!isInTransaction) connection = Db.getDb().beginTransaction();
+            else connection = Db.getDb().getConnection();
             clear(connection);
             success = saveUpdateTransaction(transactionId, connection);
-            Db.db.commitTransaction();
+            Db.getDb().commitTransaction();
             success = true;            
         }
         catch (SQLException e) {
-            Db.db.rollbackTransaction();
+            Db.getDb().rollbackTransaction();
             Logger.logErrorMessage("Db error", e);
         }
         finally {
-            if (!isInTransaction) Db.db.endTransaction();
+            if (!isInTransaction) Db.getDb().endTransaction();
             return success;
         }
         
     }
 
     public static boolean saveUpdateTransaction(Long transactionId) {
-        try (Connection connection = Db.db.getConnection()) {
+        try (Connection connection = Db.getDb().getConnection()) {
             return saveUpdateTransaction(transactionId, connection);
         }
         catch (SQLException e) {
@@ -104,7 +104,7 @@ public class UpdaterDb {
 
     public static boolean saveUpdateStatus(Boolean status) {
         int updateCount;
-        try (Connection connection = Db.db.getConnection();
+        try (Connection connection = Db.getDb().getConnection();
              PreparedStatement statement = connection.prepareStatement("UPDATE update_status set updated = ?")) {
             statement.setBoolean(1, status);
             updateCount = statement.executeUpdate();
@@ -118,7 +118,7 @@ public class UpdaterDb {
     }
 
     public static boolean getUpdateStatus() {
-        try (Connection connection = Db.db.getConnection();
+        try (Connection connection = Db.getDb().getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT updated FROM update_status");
              ResultSet rs =  statement.executeQuery()) {
             if (rs.next()) {
@@ -133,7 +133,7 @@ public class UpdaterDb {
     }
 
     public static int clear() {
-        try (Connection connection = Db.db.getConnection()) {
+        try (Connection connection = Db.getDb().getConnection()) {
             return clear(connection);
         }
         catch (SQLException e) {

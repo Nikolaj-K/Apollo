@@ -259,6 +259,7 @@ public final class Peers {
         json.put("application", Apl.APPLICATION);
         json.put("version", Apl.VERSION.toString());
         json.put("platform", Peers.myPlatform);
+        json.put("chainId", Constants.CHAIN_ID);
         json.put("shareAddress", Peers.shareMyAddress);
         if (!Constants.ENABLE_PRUNING && Constants.INCLUDE_EXPIRED_PRUNABLE) {
             servicesList.add(Peer.Service.PRUNABLE);
@@ -736,15 +737,15 @@ public final class Peers {
             // Update the peer database
             //
             try {
-                Db.db.beginTransaction();
+                Db.getDb().beginTransaction();
                 PeerDb.deletePeers(toDelete);
                 PeerDb.updatePeers(toUpdate);
-                Db.db.commitTransaction();
+                Db.getDb().commitTransaction();
             } catch (Exception e) {
-                Db.db.rollbackTransaction();
+                Db.getDb().rollbackTransaction();
                 throw e;
             } finally {
-                Db.db.endTransaction();
+                Db.getDb().endTransaction();
             }
         }
 
@@ -754,14 +755,14 @@ public final class Peers {
         Peers.addListener(peer -> peersService.submit(() -> {
             if (peer.getAnnouncedAddress() != null && !peer.isBlacklisted()) {
                 try {
-                    Db.db.beginTransaction();
+                    Db.getDb().beginTransaction();
                     PeerDb.updatePeer((PeerImpl)peer);
-                    Db.db.commitTransaction();
+                    Db.getDb().commitTransaction();
                 } catch (RuntimeException e) {
                     Logger.logErrorMessage("Unable to update peer database", e);
-                    Db.db.rollbackTransaction();
+                    Db.getDb().rollbackTransaction();
                 } finally {
-                    Db.db.endTransaction();
+                    Db.getDb().endTransaction();
                 }
             }
         }), Peers.Event.CHANGED_SERVICES);

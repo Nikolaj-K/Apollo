@@ -23,7 +23,6 @@ package com.apollocurrency.aplwallet.apl.peer;
 import com.apollocurrency.aplwallet.apl.*;
 import com.apollocurrency.aplwallet.apl.http.API;
 import com.apollocurrency.aplwallet.apl.http.APIEnum;
-import com.apollocurrency.aplwallet.apl.Version;
 import com.apollocurrency.aplwallet.apl.util.*;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONStreamAware;
@@ -67,6 +66,7 @@ final class PeerImpl implements Peer {
     private volatile int hallmarkBalanceHeight;
     private volatile long services;
     private volatile BlockchainState blockchainState;
+    private volatile int chainId = -1;
 
     PeerImpl(String host, String announcedAddress) {
         this.host = host;
@@ -179,6 +179,15 @@ final class PeerImpl implements Peer {
             throw new IllegalArgumentException("Invalid platform length: " + platform.length());
         }
         this.platform = platform;
+    }
+
+    @Override
+    public int getChainId() {
+        return chainId;
+    }
+
+    public void setChainId(int chainId) {
+        this.chainId = chainId;
     }
 
     @Override
@@ -629,7 +638,11 @@ final class PeerImpl implements Peer {
                 setPlatform((String) response.get("platform"));
                 shareAddress = Boolean.TRUE.equals(response.get("shareAddress"));
                 analyzeHallmark((String) response.get("hallmark"));
-
+                Object chainIdObject = response.get("chainId");
+                if (chainIdObject == null || (chainId = (Integer)chainIdObject) != Constants.CHAIN_ID) {
+                    blacklist(String.format("Peer %s has different chainId %d", getAnnouncedAddress(), this.chainId));
+                    return;
+                }
                 if (!Peers.ignorePeerAnnouncedAddress) {
                     String newAnnouncedAddress = Convert.emptyToNull((String) response.get("announcedAddress"));
                     if (newAnnouncedAddress != null) {

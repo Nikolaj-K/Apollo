@@ -136,7 +136,7 @@ public class AccountLedger {
                 int trimmed;
                 do {
                     trimmed = pstmt.executeUpdate();
-                    Db.db.commitTransaction();
+                    Db.getDb().commitTransaction();
                 } while (trimmed >= Constants.BATCH_COMMIT_SIZE);
             } catch (SQLException e) {
                 throw new RuntimeException(e.toString(), e);
@@ -233,7 +233,7 @@ public class AccountLedger {
         //
         // Must be in a database transaction
         //
-        if (!Db.db.isInTransaction()) {
+        if (!Db.getDb().isInTransaction()) {
             throw new IllegalStateException("Not in transaction");
         }
         //
@@ -292,7 +292,7 @@ public class AccountLedger {
         if (!allowPrivate) {
             sql += " AND event_id NOT IN (select event_id from account_ledger where event_type = ? ) ";
         }
-        try (Connection con = Db.db.getConnection();
+        try (Connection con = Db.getDb().getConnection();
                 PreparedStatement stmt = con.prepareStatement(sql)) {
             stmt.setLong(1, ledgerId);
             if (!allowPrivate) {
@@ -377,7 +377,7 @@ public class AccountLedger {
         // Get the ledger entries
         //
         blockchain.readLock();
-        try (Connection con = Db.db.getConnection();
+        try (Connection con = Db.getDb().getConnection();
              PreparedStatement pstmt = con.prepareStatement(sb.toString())) {
             int i = 0;
             if (accountId != 0) {
