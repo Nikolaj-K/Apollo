@@ -20,11 +20,13 @@
 
 package com.apollocurrency.aplwallet.apl.http;
 
-import com.apollocurrency.aplwallet.AppAsyncListener;
 import com.apollocurrency.aplwallet.apl.Apl;
 import com.apollocurrency.aplwallet.apl.Constants;
 import com.apollocurrency.aplwallet.apl.crypto.Crypto;
-import com.apollocurrency.aplwallet.apl.util.*;
+import com.apollocurrency.aplwallet.apl.util.Convert;
+import com.apollocurrency.aplwallet.apl.util.Logger;
+import com.apollocurrency.aplwallet.apl.util.ThreadPool;
+import com.apollocurrency.aplwallet.apl.util.UPnP;
 import org.eclipse.jetty.security.ConstraintMapping;
 import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.security.SecurityHandler;
@@ -43,7 +45,6 @@ import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 import javax.servlet.*;
-import javax.servlet.Filter;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -264,12 +265,12 @@ public final class API {
 
             apiHandler.addServlet(APITestServlet.class, "/test");
             apiHandler.addServlet(APITestServlet.class, "/test-proxy");
-            ServletHolder holder = new ServletHolder(SSEPublisher.class);
-            holder.setAsyncSupported(true);
-            apiHandler.addServlet(holder, "/record");
-//            apiHandler.addServlet(DbShellServlet.class, "/dbshell");
-apiHandler.addEventListener(new AppContextListener());
-            apiHandler.addEventListener(new AppAsyncListener());
+//            ServletHolder holder = new ServletHolder(SSEPublisher.class);
+//            holder.setAsyncSupported(true);
+//            apiHandler.addServlet(holder, "/record");
+////            apiHandler.addServlet(DbShellServlet.class, "/dbshell");
+//apiHandler.addEventListener(new AppContextListener());
+//            apiHandler.addEventListener(new AppAsyncListener());
 
             if (apiServerCORS) {
                 FilterHolder filterHolder = apiHandler.addFilter(CrossOriginFilter.class, "/*", null);
