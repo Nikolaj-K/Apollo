@@ -2,10 +2,10 @@
  * Copyright © 2018 Apollo Foundation
  */
 
-package com.apollocurrency.aplwallet.apl.updater;
+package com.apollocurrency.aplwallet.apl.updater.decryption;
 
-import com.apollocurrency.aplwallet.apl.Version;
-import com.apollocurrency.aplwallet.apl.util.Logger;
+import com.apollocurrency.aplwallet.apl.updater.DoubleByteArrayTuple;
+import com.apollocurrency.aplwallet.apl.updater.UpdaterUtil;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
@@ -24,7 +24,6 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.interfaces.RSAKey;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.Set;
 
 import static com.apollocurrency.aplwallet.apl.updater.UpdaterUtil.loadResource;
 
@@ -81,17 +80,7 @@ public class RSAUtil {
         if (encrypted == null) return null;
         Cipher cipher = Cipher.getInstance("RSA");
         cipher.init(Cipher.DECRYPT_MODE, publicKey);
-
-        try
-        {
-           byte[] decrypted = cipher.doFinal(encrypted);
-           return decrypted;
-        }
-        catch(javax.crypto.BadPaddingException e)
-        {
-            return null;
-        }
-
+        return cipher.doFinal(encrypted);
     }
 
     public static byte[] encrypt(String privateKeyPath, byte[] message) throws GeneralSecurityException, IOException, URISyntaxException {
@@ -99,9 +88,14 @@ public class RSAUtil {
         return encrypt(privateKey, message);
     }
 
-    public static byte[] decrypt(String certificatePath, byte[] encrypted) throws GeneralSecurityException, IOException, URISyntaxException {
-        PublicKey publicKey = getPublicKeyFromCertificate(certificatePath);
-        return decrypt(publicKey, encrypted);
+    public static byte[] decrypt(String certificatePath, byte[] encrypted) throws GeneralSecurityException {
+        try {
+            PublicKey publicKey = getPublicKeyFromCertificate(certificatePath);
+            return decrypt(publicKey, encrypted);
+        }
+        catch (CertificateException | IOException | URISyntaxException e) {
+            throw new RuntimeException(e.toString(), e);
+        }
     }
 
     public static PrivateKey getPrivateKey(String path) throws IOException, GeneralSecurityException, URISyntaxException {
@@ -137,31 +131,5 @@ public class RSAUtil {
         return RSACore.getByteLength(key);
     }
 
-    public static void main(String[] args) {
-        tryDecryptUrl("conf/certs", new DoubleByteArrayTuple(new byte[0], new byte[0]), Version.from("1.0.8"));
-    }
-    public static String tryDecryptUrl(String certificateDirectory, DoubleByteArrayTuple encryptedUrl, Version updateVersion) {
-        Set<UpdaterUtil.CertificatePair> certificatePairs;
-        try {
-            certificatePairs = UpdaterUtil.buildCertificatePairs(certificateDirectory);
-            for (UpdaterUtil.CertificatePair pair : certificatePairs) {
-                try {
-                    String urlString = new String(RSAUtil.doubleDecrypt(pair.getFirstCertificate().getPublicKey(), pair.getSecondCertificate().getPublicKey
-                            (), encryptedUrl));
-                    if (urlString.matches(String.format(URL_TEMPLATE, updateVersion.toString()))) {
-                        Logger.logDebugMessage("Decrypted url using: " + pair);
-                        return urlString;
-                    }
-                }
-                catch (Exception e) {
-                      Logger.logDebugMessage("Cannot decrypt url.");
-                }
-            }
-        }
-        catch (IOException | CertificateException | URISyntaxException e) {
-            Logger.logErrorMessage("Cannot read or load certificate", e);
-        }
-        return null;
-    }
 
 }
