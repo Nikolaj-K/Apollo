@@ -4,7 +4,8 @@
 
 package com.apollocurrency.aplwallet.apl.updater;
 
-import com.apollocurrency.aplwallet.apl.Version;
+import com.apollocurrency.aplwallet.apl.updater.decryption.RSADoubleDecryptor;
+import com.apollocurrency.aplwallet.apl.updater.decryption.RSAUtil;
 import com.apollocurrency.aplwallet.apl.util.Convert;
 import com.apollocurrency.aplwallet.apl.util.Logger;
 import org.junit.Assert;
@@ -17,7 +18,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
-import static com.apollocurrency.aplwallet.apl.updater.RSAUtil.*;
+import static com.apollocurrency.aplwallet.apl.updater.decryption.RSAUtil.*;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
 @SuppressStaticInitializationFor("com.apollocurrency.aplwallet.apl.util.Logger")
@@ -79,7 +80,9 @@ public class RSAUtilTest {
         String expectedMessage = "http://apollocurrency/ApolloWallet-1.0.8.jar";
         DoubleByteArrayTuple doubleEncryptedBytes = RSAUtil.doubleEncrypt(privateKey1, privateKey2, expectedMessage.getBytes());
 
-        String url = RSAUtil.tryDecryptUrl("certs", doubleEncryptedBytes, Version.from("1.0.8"));
+        String url = new String(new RSADoubleDecryptor().decrypt(UpdaterUtil.concatArrays(doubleEncryptedBytes.getFirst(),
+                doubleEncryptedBytes.getSecond()),
+                pubKey2, pubKey1));
         Assert.assertNotNull(url);
         Assert.assertEquals(expectedMessage, url);
     }

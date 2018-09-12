@@ -20,6 +20,7 @@
 
 package com.apollocurrency.aplwallet.apl.http;
 
+import com.apollocurrency.aplwallet.AppAsyncListener;
 import com.apollocurrency.aplwallet.apl.Apl;
 import com.apollocurrency.aplwallet.apl.Constants;
 import com.apollocurrency.aplwallet.apl.crypto.Crypto;
@@ -263,8 +264,12 @@ public final class API {
 
             apiHandler.addServlet(APITestServlet.class, "/test");
             apiHandler.addServlet(APITestServlet.class, "/test-proxy");
-
+            ServletHolder holder = new ServletHolder(SSEPublisher.class);
+            holder.setAsyncSupported(true);
+            apiHandler.addServlet(holder, "/record");
 //            apiHandler.addServlet(DbShellServlet.class, "/dbshell");
+apiHandler.addEventListener(new AppContextListener());
+            apiHandler.addEventListener(new AppAsyncListener());
 
             if (apiServerCORS) {
                 FilterHolder filterHolder = apiHandler.addFilter(CrossOriginFilter.class, "/*", null);
